@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Context-Aware EUD — Site Interativo da Aula</title>
+<style>
+  :root{
+    --primary:#1E3A5F;--accent:#2563EB;--teal:#0D9488;--amber:#D97706;
+    --light:#EFF6FF;--white:#fff;--gray:#64748B;--lgray:#E2E8F0;
+    --dark:#0F172A;--bg:#F8FAFC;--green:#16A34A;--red:#DC2626;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--dark);min-height:100vh}
+
+  /* NAV */
+  nav{background:var(--primary);color:#fff;display:flex;align-items:center;gap:0;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+  nav .logo{padding:12px 20px;font-size:1.1rem;font-weight:700;white-space:nowrap}
+  nav .tabs{display:flex;flex:1;overflow-x:auto}
+  nav .tab{padding:14px 16px;cursor:pointer;font-size:.85rem;font-weight:600;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;color:#93C5FD}
+  nav .tab:hover{background:rgba(255,255,255,.08);color:#fff}
+  nav .tab.active{border-bottom-color:#60A5FA;color:#fff;background:rgba(255,255,255,.1)}
+
+  /* SECTIONS */
+  section{display:none;padding:24px 20px;max-width:900px;margin:0 auto}
+  section.active{display:block}
+
+  h1{font-size:1.8rem;color:var(--primary);margin-bottom:6px}
+  h2{font-size:1.3rem;color:var(--primary);margin-bottom:12px}
+  h3{font-size:1.05rem;color:var(--accent);margin-bottom:8px}
+  p{color:var(--gray);line-height:1.6;margin-bottom:10px}
+
+  .hero{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border-radius:16px;padding:32px 28px;margin-bottom:24px}
+  .hero h1{color:#fff;font-size:2rem}
+  .hero p{color:#BFDBFE;font-size:1rem}
+
+  .card{background:var(--white);border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid var(--lgray)}
+  .card-teal{border-left:4px solid var(--teal)}
+  .card-amber{border-left:4px solid var(--amber)}
+  .card-accent{border-left:4px solid var(--accent)}
+  .card-primary{border-left:4px solid var(--primary)}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:700;margin-right:6px}
+  .badge-blue{background:#DBEAFE;color:var(--accent)}
+  .badge-teal{background:#CCFBF1;color:var(--teal)}
+  .badge-amber{background:#FEF3C7;color:var(--amber)}
+  .badge-red{background:#FEE2E2;color:var(--red)}
+  .badge-green{background:#DCFCE7;color:var(--green)}
+
+  /* TIMELINE */
+  .timeline{position:relative;padding-left:28px}
+  .timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--lgray)}
+  .tl-item{position:relative;margin-bottom:20px}
+  .tl-dot{position:absolute;left:-24px;top:4px;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--white);box-shadow:0 0 0 2px var(--accent)}
+  .tl-dot.teal{background:var(--teal);box-shadow:0 0 0 2px var(--teal)}
+  .tl-dot.amber{background:var(--amber);box-shadow:0 0 0 2px var(--amber)}
+  .tl-dot.star{background:var(--accent);width:16px;height:16px;left:-25px}
+  .tl-year{font-size:.8rem;font-weight:700;color:var(--gray);margin-bottom:2px}
+  .tl-title{font-size:.95rem;font-weight:600;color:var(--dark)}
+  .tl-venue{font-size:.8rem;color:var(--gray);margin-top:2px;font-style:italic}
+
+  /* QUIZ */
+  .quiz-question{background:var(--white);border-radius:12px;padding:20px;margin-bottom:18px;border:1px solid var(--lgray);transition:border .2s}
+  .quiz-question.answered{border-color:var(--teal)}
+  .quiz-q-text{font-size:1rem;font-weight:600;color:var(--dark);margin-bottom:14px}
+  .quiz-options{display:grid;gap:8px}
+  .quiz-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;border:1.5px solid var(--lgray);cursor:pointer;transition:all .2s;background:var(--bg);font-size:.9rem}
+  .quiz-opt:hover:not(.disabled){border-color:var(--accent);background:var(--light)}
+  .quiz-opt.correct{background:#DCFCE7;border-color:var(--green);font-weight:600}
+  .quiz-opt.wrong{background:#FEE2E2;border-color:var(--red)}
+  .quiz-opt.disabled{cursor:default}
+  .quiz-letter{width:26px;height:26px;border-radius:50%;background:var(--lgray);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0}
+  .correct .quiz-letter{background:var(--green);color:#fff}
+  .wrong .quiz-letter{background:var(--red);color:#fff}
+  .feedback{margin-top:10px;padding:10px 14px;border-radius:8px;font-size:.88rem;display:none}
+  .feedback.show{display:block}
+  .feedback.ok{background:#DCFCE7;color:#166534}
+  .feedback.err{background:#FEE2E2;color:#991B1B}
+
+  #quiz-score{text-align:center;padding:20px;background:linear-gradient(135deg,var(--teal),var(--accent));color:#fff;border-radius:12px;display:none;margin-top:16px}
+  #quiz-score h2{color:#fff;font-size:2rem}
+  #quiz-score p{color:#E0F7FA}
+
+  /* POLL */
+  .poll-option{display:flex;align-items:center;gap:12px;margin-bottom:12px;cursor:pointer}
+  .poll-bar-wrap{flex:1;background:var(--lgray);border-radius:20px;height:36px;overflow:hidden;position:relative;cursor:pointer}
+  .poll-bar{height:100%;border-radius:20px;transition:width .6s ease;display:flex;align-items:center;padding-left:12px;color:#fff;font-weight:700;font-size:.85rem;min-width:4px}
+  .poll-label{font-size:.9rem;font-weight:600;min-width:140px}
+  .poll-pct{min-width:44px;text-align:right;font-size:.9rem;font-weight:700;color:var(--primary)}
+  .btn{display:inline-block;padding:10px 22px;border-radius:8px;border:none;cursor:pointer;font-size:.9rem;font-weight:700;transition:all .2s}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:#1D4ED8}
+  .btn-teal{background:var(--teal);color:#fff}
+  .btn-teal:hover{background:#0F766E}
+  .btn-amber{background:var(--amber);color:#fff}
+  .btn-amber:hover{background:#B45309}
+  .btn-outline{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+  .btn-outline:hover{background:var(--light)}
+  .btn-sm{padding:6px 14px;font-size:.82rem}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  /* DINAMICAS */
+  .dyn-header{background:linear-gradient(135deg,var(--dark),#1E293B);border-radius:12px;padding:20px 24px;margin-bottom:18px;color:#fff}
+  .dyn-header .emoji{font-size:2rem;margin-bottom:8px;display:block}
+  .dyn-header h2{color:#fff;font-size:1.4rem}
+  .dyn-header p{color:#94A3B8;font-size:.9rem}
+  .scenario{background:#1E293B;border:1px solid #334155;border-radius:10px;padding:16px;margin-bottom:12px}
+  .scenario p{color:#CBD5E1;margin:0}
+  .scenario strong{color:#fff}
+  .vote-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+
+  /* SPRINT */
+  .sprint-form{display:grid;gap:12px}
+  .sprint-field label{display:block;font-size:.85rem;font-weight:700;color:var(--primary);margin-bottom:4px}
+  .sprint-field select,.sprint-field textarea,.sprint-field input{width:100%;padding:10px;border:1.5px solid var(--lgray);border-radius:8px;font-size:.9rem;font-family:inherit;color:var(--dark);background:var(--bg);transition:border .2s}
+  .sprint-field select:focus,.sprint-field textarea:focus{outline:none;border-color:var(--accent)}
+  .sprint-field textarea{resize:vertical;min-height:70px}
+  .sprint-results{margin-top:16px}
+  .sprint-entry{background:var(--light);border-radius:8px;padding:12px;margin-bottom:8px;border-left:3px solid var(--accent)}
+  .sprint-entry strong{color:var(--accent);font-size:.85rem}
+  .sprint-entry p{color:var(--dark);font-size:.9rem;margin:4px 0 0}
+
+  /* TREE */
+  .tree-wrap{overflow-x:auto;padding:10px 0 20px}
+  .tree-node{display:inline-flex;flex-direction:column;align-items:center;gap:0}
+  .tree-row{display:flex;gap:16px;justify-content:center}
+  .tree-box{background:var(--white);border:2px solid var(--lgray);border-radius:10px;padding:12px 14px;min-width:180px;max-width:220px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+  .tree-box:hover{border-color:var(--accent);box-shadow:0 4px 12px rgba(37,99,235,.15)}
+  .tree-box.root{background:var(--primary);border-color:var(--primary);color:#fff}
+  .tree-box.root .tb-year{color:#93C5FD}
+  .tree-box.root .tb-title{color:#fff}
+  .tree-box.highlight{background:var(--light);border-color:var(--accent)}
+  .tree-box.highlight .tb-title{color:var(--accent)}
+  .tb-year{font-size:.75rem;font-weight:700;color:var(--gray);margin-bottom:4px}
+  .tb-title{font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:4px}
+  .tb-venue{font-size:.75rem;color:var(--gray);font-style:italic}
+  .tree-line{width:2px;height:28px;background:var(--lgray);margin:0 auto}
+  .tree-hline{height:2px;flex:1;background:var(--lgray);align-self:flex-start;margin-top:24px}
+  .detail-box{background:var(--light);border-radius:10px;padding:16px;margin-top:12px;border:1px solid var(--accent);display:none}
+  .detail-box.open{display:block}
+
+  /* ROTEIRO */
+  .rot-section{border-radius:12px;overflow:hidden;margin-bottom:16px;border:1px solid var(--lgray)}
+  .rot-header{padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;background:var(--white);transition:background .2s}
+  .rot-header:hover{background:var(--light)}
+  .rot-icon{font-size:1.4rem}
+  .rot-info{flex:1}
+  .rot-title{font-size:.95rem;font-weight:700;color:var(--primary)}
+  .rot-time{font-size:.78rem;color:var(--gray)}
+  .rot-body{padding:0 18px;max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s}
+  .rot-body.open{max-height:2000px;padding:14px 18px}
+  .rot-tip{background:#FEF3C7;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:.85rem;color:#92400E}
+  .rot-tip::before{content:'💡 ';font-weight:700}
+  .rot-warn{background:#FEE2E2;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:.85rem;color:#991B1B}
+  .rot-warn::before{content:'⚠️ ';font-weight:700}
+  ul.rot-list{padding-left:18px;color:var(--dark);font-size:.9rem}
+  ul.rot-list li{margin-bottom:6px;line-height:1.5}
+  .arrow{font-size:.85rem;color:var(--gray);transition:transform .3s}
+  .open .arrow,.rot-body.open~.rot-header .arrow{transform:rotate(90deg)}
+
+  /* GRID TECNICAS */
+  .tech-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .tech-card{background:var(--white);border-radius:10px;padding:14px;border:1px solid var(--lgray);cursor:pointer;transition:all .2s}
+  .tech-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+  .tech-num{font-size:1.1rem;font-weight:900;color:var(--accent);margin-bottom:4px}
+  .tech-name{font-size:.88rem;font-weight:700;color:var(--dark);margin-bottom:4px}
+  .tech-ex{font-size:.78rem;color:var(--gray);font-style:italic}
+  .tech-detail{background:var(--light);border-radius:8px;padding:12px 14px;margin-top:8px;font-size:.85rem;color:var(--dark);display:none}
+  .tech-card.open .tech-detail{display:block}
+  .tech-card.open{border-color:var(--accent);background:var(--light)}
+
+  /* RESPONSIVE */
+  @media(max-width:600px){
+    nav .logo{font-size:.9rem;padding:10px 12px}
+    nav .tab{padding:11px 10px;font-size:.78rem}
+    h1{font-size:1.4rem}
+    .hero{padding:20px 16px}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">📚 EUD Review</div>
+  <div class="tabs">
+    <div class="tab active" onclick="show('inicio')">🏠 Início</div>
+    <div class="tab" onclick="show('roteiro')">📋 Roteiro</div>
+    <div class="tab" onclick="show('tecnicas')">🛠️ Técnicas</div>
+    <div class="tab" onclick="show('arvore')">🌳 Pesquisa</div>
+    <div class="tab" onclick="show('din1')">🎮 Din. 1</div>
+    <div class="tab" onclick="show('din2')">🎮 Din. 2</div>
+    <div class="tab" onclick="show('din3')">🎮 Din. 3</div>
+    <div class="tab" onclick="show('quiz')">✅ Quiz</div>
+  </div>
+</nav>
+
+<!-- ═══════════════ INÍCIO ═══════════════ -->
+<section id="inicio" class="active">
+  <div class="hero">
+    <h1>Context-Aware EUD Review</h1>
+    <p style="margin-top:8px">Ponce &amp; Abdulrazak — Applied Sciences 2022 &nbsp;•&nbsp; Aula de 3 horas</p>
+    <p style="color:#93C5FD;margin-top:4px;font-size:.85rem">Disciplina: Contexto Computacional — Doutorado</p>
+  </div>
+
+  <div class="card card-accent">
+    <h2>🎯 Pergunta Central do Artigo</h2>
+    <p style="font-size:1.05rem;color:var(--dark);font-style:italic">"Como empoderar usuários comuns a construir aplicações sensíveis ao contexto — sem precisar ser programadores?"</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+    <div class="card card-teal">
+      <h3>📊 Números do Artigo</h3>
+      <ul style="padding-left:16px;color:var(--dark);font-size:.9rem">
+        <li>968 artigos encontrados</li>
+        <li><strong>37 artigos selecionados</strong></li>
+        <li>11 técnicas identificadas</li>
+        <li>2001–2020 (período coberto)</li>
+        <li>70% focam em usuários não-técnicos</li>
+      </ul>
+    </div>
+    <div class="card card-amber">
+      <h3>🔍 Duas Perguntas de Pesquisa</h3>
+      <ul style="padding-left:16px;color:var(--dark);font-size:.9rem">
+        <li><strong>RQ1:</strong> Quais técnicas de construção EUD são usadas?</li>
+        <li><strong>RQ2:</strong> Como as ferramentas são implementadas (por baixo)?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📌 Navegação Rápida</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+      <button class="btn btn-primary btn-sm" onclick="show('roteiro')">📋 Roteiro Detalhado</button>
+      <button class="btn btn-teal btn-sm" onclick="show('tecnicas')">🛠️ 11 Técnicas EUD</button>
+      <button class="btn btn-outline btn-sm" onclick="show('arvore')">🌳 Árvore de Pesquisa</button>
+      <button class="btn btn-amber btn-sm" onclick="show('quiz')">✅ Fazer o Quiz</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ ROTEIRO ═══════════════ -->
+<section id="roteiro">
+  <h1>📋 Roteiro de Apresentação — 3 horas</h1>
+  <p>Clique em cada bloco para expandir o roteiro detalhado com dicas, analogias e questões disparadoras.</p>
+
+  <div id="rot-container"></div>
+</section>
+
+<!-- ═══════════════ TÉCNICAS ═══════════════ -->
+<section id="tecnicas">
+  <h1>🛠️ As 11 Técnicas de Construção EUD</h1>
+  <p>Clique em cada técnica para ver a descrição, exemplos do artigo e uma analogia prática.</p>
+  <div class="tech-grid" id="tech-grid"></div>
+</section>
+
+<!-- ═══════════════ ÁRVORE ═══════════════ -->
+<section id="arvore">
+  <h1>🌳 Linha de Pesquisa dos Autores</h1>
+  <p>Clique em cada artigo para saber mais. <strong>Destacado em azul</strong> = artigo que estamos estudando.</p>
+
+  <div class="tree-wrap">
+    <!-- Raiz -->
+    <div style="text-align:center;margin-bottom:0">
+      <div class="tree-box root" style="display:inline-block;margin-bottom:0" onclick="toggleDetail('d-root')">
+        <div class="tb-year">AMI-Lab — Abdulrazak</div>
+        <div class="tb-title">Ambient Intelligence Lab</div>
+        <div class="tb-venue">Université de Sherbrooke, Canadá</div>
+      </div>
+    </div>
+    <div class="tree-line"></div>
+
+    <!-- Nível 1 -->
+    <div class="tree-row" style="margin-bottom:0">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tree-box" onclick="toggleDetail('d-macro')">
+          <div class="tb-year">2010</div>
+          <div class="tb-title">Macro & Micro Context-Awareness for Autonomic Pervasive Computing</div>
+          <div class="tb-venue">MoMM 2010</div>
+        </div>
+        <div class="detail-box" id="d-macro">
+          <strong>Contribuição:</strong> Propõe a distinção entre macro-contexto (ambiente geral) e micro-contexto (contexto imediato do usuário). Base para o ContextAA.
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tree-box" onclick="toggleDetail('d-quefaire')">
+          <div class="tb-year">2015</div>
+          <div class="tb-title">QueFaire: Context-Aware Social Activity Recommendation for Active Aging</div>
+          <div class="tb-venue">ICOST 2015</div>
+        </div>
+        <div class="detail-box" id="d-quefaire">
+          <strong>Contribuição:</strong> Aplicação concreta de context-awareness para idosos — recomenda atividades sociais com base em perfil, localização e preferências. Mostra o "EUD" implícito no uso da plataforma.
+        </div>
+      </div>
+    </div>
+    <div class="tree-line"></div>
+
+    <!-- Nível 2 -->
+    <div class="tree-row">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tree-box teal" onclick="toggleDetail('d-dynamic')">
+          <div class="tb-year">2016</div>
+          <div class="tb-title">Dynamic Domain Model for Micro Context-Aware Adaptation</div>
+          <div class="tb-venue">UIC/ATC/IEEE</div>
+        </div>
+        <div class="detail-box" id="d-dynamic">
+          <strong>Contribuição:</strong> Modelo de domínio dinâmico baseado no ContextAA — permite adaptação de aplicações ao contexto do usuário sem intervenção técnica.
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tree-box teal" onclick="toggleDetail('d-activity')">
+          <div class="tb-year">2017</div>
+          <div class="tb-title">Activity Model for Interactive Micro Context-Aware Well-Being Apps</div>
+          <div class="tb-venue">ICOST 2017</div>
+        </div>
+        <div class="detail-box" id="d-activity">
+          <strong>Contribuição:</strong> Modelo de atividades para apps de bem-estar. Baseado no ContextAA, permite que apps se adaptem conforme as atividades do usuário (ex: exercício vs. repouso).
+        </div>
+      </div>
+    </div>
+    <div class="tree-line"></div>
+
+    <!-- Nível 3 -->
+    <div class="tree-row">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tree-box highlight" onclick="toggleDetail('d-review')">
+          <div class="tb-year">2022 ⭐</div>
+          <div class="tb-title">Context-Aware End-User Development Review ← ESTE ARTIGO</div>
+          <div class="tb-venue">Applied Sciences (MDPI)</div>
+        </div>
+        <div class="detail-box" id="d-review">
+          <strong>Contribuição:</strong> Revisão sistemática de 37 artigos. Classifica 11 técnicas EUD e abordagens de implementação para apps context-aware. Mapa do estado da arte até 2020.
+          <br><br><a href="https://doi.org/10.3390/app12010479" target="_blank" style="color:var(--accent)">🔗 Acesso ao artigo</a>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tree-box highlight" onclick="toggleDetail('d-intention')">
+          <div class="tb-year">2021</div>
+          <div class="tb-title">Intention as a Context: Activity Intention Model for IoT</div>
+          <div class="tb-venue">IEEE Access</div>
+        </div>
+        <div class="detail-box" id="d-intention">
+          <strong>Contribuição:</strong> Propõe "intenção" como um tipo de contexto. Modelo que permite a especialistas de domínio (ex: médicos) definirem comportamentos de apps IoT sem programação tradicional. Avança o EUD para além das regras.
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="tree-box highlight" onclick="toggleDetail('d-gov')">
+          <div class="tb-year">2022</div>
+          <div class="tb-title">Ambient Intelligence Governance Review: SOA to Self-Service</div>
+          <div class="tb-venue">PeerJ CS</div>
+        </div>
+        <div class="detail-box" id="d-gov">
+          <strong>Contribuição:</strong> Revisão sobre governança de sistemas de inteligência ambiental. Complementa o artigo EUD analisando a arquitetura por trás (SOA → self-service). Caminha para sistemas autônomos onde o usuário tem ainda menos barreiras.
+        </div>
+      </div>
+    </div>
+    <div class="tree-line"></div>
+
+    <!-- Futuro -->
+    <div style="text-align:center">
+      <div class="tree-box" style="display:inline-block;border-style:dashed;opacity:.8">
+        <div class="tb-year">2023+</div>
+        <div class="tb-title">EUD + LLMs + IoT? Próximo passo da linha de pesquisa</div>
+        <div class="tb-venue">Em andamento...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-primary" style="margin-top:16px">
+    <h3>🧠 Leitura da Árvore</h3>
+    <p>A linha de pesquisa parte de <strong>modelos de contexto</strong> (micro/macro, 2010) → <strong>aplicações concretas</strong> para bem-estar (2015-2017) → <strong>revisão do estado da arte</strong> do EUD (2022) e proposta de <strong>modelo de intenção</strong> como contexto (2021). A direção aponta para sistemas onde qualquer especialista de domínio consegue definir comportamentos de apps IoT sem programar.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ DINÂMICA 1 ═══════════════ -->
+<section id="din1">
+  <div class="dyn-header">
+    <span class="emoji">🎮</span>
+    <h2>Dinâmica 1 — Quem é quem no EUD?</h2>
+    <p>Para cada cenário, identifique se é EUP, EUD, EUSE ou apenas "Configuração" — e justifique!</p>
+  </div>
+
+  <div id="din1-scenarios"></div>
+
+  <div class="card" style="margin-top:16px">
+    <h3>📊 Respostas da Turma</h3>
+    <div id="din1-votes" style="font-size:.9rem;color:var(--gray)">As respostas aparecerão aqui conforme a turma votar.</div>
+  </div>
+</section>
+
+<!-- ═══════════════ DINÂMICA 2 ═══════════════ -->
+<section id="din2">
+  <div class="dyn-header">
+    <span class="emoji">🎮</span>
+    <h2>Dinâmica 2 — Design Sprint: Crie seu EUD Tool!</h2>
+    <p>Grupos de 3-4 pessoas. Cenário: startup de saúde precisa de ferramenta EUD para médicos criarem alertas IoT para idosos. Preencha abaixo e apresente!</p>
+  </div>
+
+  <div class="card">
+    <div class="sprint-form">
+      <div class="sprint-field">
+        <label>👥 Nome do Grupo</label>
+        <input type="text" id="sprint-grupo" placeholder="Ex: Grupo Alpha"/>
+      </div>
+      <div class="sprint-field">
+        <label>🛠️ Técnica EUD Escolhida</label>
+        <select id="sprint-tecnica">
+          <option value="">— selecione —</option>
+          <option>1. Abstração de Artefatos (APIs, scripts)</option>
+          <option>2. Especificação Baseada em Modelo</option>
+          <option>3. Fluxo Simples de Componentes</option>
+          <option>4. Linguagem Visual de Fluxo</option>
+          <option>5. Montagem de Peças (blocos)</option>
+          <option>6. Significado Simplificado (linguagem natural)</option>
+          <option>7. Linguagem para Especificar Regras</option>
+          <option>8. Selecionar/Demonstrar Regras (IFTTT-like)</option>
+          <option>9. Ilustração de Regras (sketch)</option>
+          <option>10. Demonstrar Ações (PBD)</option>
+          <option>11. Interação Avançada (AR, tangível)</option>
+        </select>
+      </div>
+      <div class="sprint-field">
+        <label>🎨 Metáfora de Interface</label>
+        <input type="text" id="sprint-metafora" placeholder="Ex: blocos tipo LEGO, comic strip, voz..."/>
+      </div>
+      <div class="sprint-field">
+        <label>⚠️ Principal Desafio Técnico</label>
+        <textarea id="sprint-desafio" placeholder="Ex: integrar sensor de queda com regras dinâmicas..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="submitSprint()">📤 Enviar Proposta</button>
+    </div>
+  </div>
+
+  <div class="sprint-results" id="sprint-results">
+    <h3>📋 Propostas da Turma</h3>
+    <div id="sprint-list"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ DINÂMICA 3 ═══════════════ -->
+<section id="din3">
+  <div class="dyn-header">
+    <span class="emoji">🎮</span>
+    <h2>Dinâmica 3 — Debate: LLMs mataram o EUD?</h2>
+    <p>Vote e defenda sua posição! As barras atualizam em tempo real.</p>
+  </div>
+
+  <div class="card card-accent" style="margin-bottom:16px">
+    <h3>🤔 A Questão</h3>
+    <p>Com o surgimento de LLMs como Claude, ChatGPT e Gemini, qualquer pessoa pode DESCREVER o que quer em linguagem natural e receber código funcional. Isso torna o EUD (com suas metáforas visuais, blocos e regras) obsoleto?</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+    <div class="card" style="border:2px solid var(--green)">
+      <h3 style="color:var(--green)">✅ SIM — LLMs superam o EUD</h3>
+      <ul style="padding-left:16px;color:var(--dark);font-size:.85rem">
+        <li>Linguagem natural é mais expressiva que qualquer metáfora visual</li>
+        <li>Sem curva de aprendizado de interface</li>
+        <li>Gera código customizado sob demanda</li>
+        <li>Permite situações complexas sem restrições de regras IF-THEN</li>
+        <li>Já integrado em IDEs (Copilot, Cursor)</li>
+      </ul>
+      <button class="btn btn-teal" style="margin-top:12px;width:100%" onclick="vote('sim')">👍 Votar SIM</button>
+    </div>
+    <div class="card" style="border:2px solid var(--red)">
+      <h3 style="color:var(--red)">❌ NÃO — EUD ainda é necessário</h3>
+      <ul style="padding-left:16px;color:var(--dark);font-size:.85rem">
+        <li>LLMs exigem letramento em IA (prompting)</li>
+        <li>Alucinações: bugs invisíveis ao usuário não-técnico</li>
+        <li>Sem interface visual de teste e depuração</li>
+        <li>Difícil integrar IoT físico via texto</li>
+        <li>Privacidade: dados do usuário no prompt</li>
+      </ul>
+      <button class="btn btn-primary" style="margin-top:12px;width:100%;background:var(--red)" onclick="vote('nao')">👎 Votar NÃO</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📊 Placar da Turma</h3>
+    <div class="poll-option">
+      <span class="poll-label">✅ SIM (LLMs batem)</span>
+      <div class="poll-bar-wrap">
+        <div class="poll-bar" id="bar-sim" style="width:0%;background:var(--teal)">0%</div>
+      </div>
+      <span class="poll-pct" id="pct-sim">0</span>
+    </div>
+    <div class="poll-option">
+      <span class="poll-label">❌ NÃO (EUD sobrevive)</span>
+      <div class="poll-bar-wrap">
+        <div class="poll-bar" id="bar-nao" style="width:0%;background:var(--red)">0%</div>
+      </div>
+      <span class="poll-pct" id="pct-nao">0</span>
+    </div>
+    <p style="margin-top:12px;font-size:.82rem;color:var(--gray)">Total de votos: <strong id="total-votes">0</strong></p>
+    <div id="voted-msg" style="display:none;margin-top:8px;padding:10px;background:var(--light);border-radius:8px;font-size:.85rem;color:var(--accent)">✅ Seu voto foi registrado! Agora argumente a favor da sua posição no chat/áudio.</div>
+  </div>
+
+  <div class="card card-teal" style="margin-top:12px">
+    <h3>🧠 Síntese possível</h3>
+    <p>LLMs e EUD <strong>não são opostos</strong> — podem ser complementares: o LLM gera o "esqueleto" do comportamento, e ferramentas EUD visuais permitem que o usuário <strong>teste, ajuste e depure</strong> sem ver código. O próximo passo da área pode ser exatamente essa fusão.</p>
+  </div>
+</section>
+
+<!-- ═══════════════ QUIZ ═══════════════ -->
+<section id="quiz">
+  <h1>✅ Quiz — Teste seu Conhecimento</h1>
+  <p>10 questões sobre o artigo. Clique na opção para ver o feedback imediato!</p>
+  <div id="quiz-container"></div>
+  <div id="quiz-score">
+    <h2 id="score-text"></h2>
+    <p id="score-sub"></p>
+    <button class="btn btn-primary" onclick="resetQuiz()" style="margin-top:12px">🔄 Refazer Quiz</button>
+  </div>
+</section>
+
+<script>
+// ═══ NAV ═══
+function show(id){
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['inicio','roteiro','tecnicas','arvore','din1','din2','din3','quiz'];
+  const idx=tabs.indexOf(id);
+  if(idx>=0) document.querySelectorAll('.tab')[idx].classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ═══ ROTEIRO ═══
+const ROTEIRO=[
+  {icon:'📖',title:'Abertura & Resumo Geral',time:'~20 min',
+   content:`<ul class="rot-list">
+    <li>Apresente-se brevemente e diga o objetivo da aula.</li>
+    <li>Contextualize: o artigo foi publicado em jan/2022 na <em>Applied Sciences</em> (MDPI, open access) por pesquisadores do AMI-Lab, Université de Sherbrooke, Canadá.</li>
+    <li>Resumo em uma frase: "Uma revisão sistemática de como a academia propõe ferramentas para que não-programadores construam apps que reagem ao contexto do ambiente."</li>
+    <li>Mostre a estrutura do artigo (6 seções) e o roteiro do dia.</li>
+    <li>Compartilhe suas impressões: extensão (29 páginas), escrita fluente, metodologia clara, porém desatualizado em relação a LLMs.</li>
+   </ul>
+   <div class="rot-tip">Analogia de abertura: "Imagine que vocês contrataram uma faxineira para a casa, mas ela só faz o que você programou de antemão. O EUD é a tentativa de deixar você mesmo reprogramar a faxineira — sem precisar de um técnico."</div>`},
+  {icon:'📗',title:'Seção 1 — Introdução',time:'~20 min',
+   content:`<ul class="rot-list">
+    <li><strong>Palavra-chave:</strong> DEMOCRATIZAÇÃO</li>
+    <li>Explique o paradoxo do IoT: mais sensores → mais dados → mais contexto disponível → mas barreira técnica para aproveitar tudo isso.</li>
+    <li>Apresente EUP, EUD e EUSE como três níveis crescentes de empoderamento do usuário.</li>
+    <li>Destaque as duas perguntas de pesquisa (RQ1: técnicas, RQ2: implementação).</li>
+   </ul>
+   <div class="rot-tip">Pergunte à turma: "Quem já usou IFTTT, Apple Shortcuts, ou automações no Notion/Zapier? Isso é EUD na vida real!" — gera engajamento imediato.</div>
+   <div class="rot-warn">Pausa para discussão: "O que vocês acham que difere um usuário 'configurando' um app de um usuário 'programando' um app?" Esta distinção é central no artigo.</div>`},
+  {icon:'📘',title:'Seção 2 — Background: EUD & Contexto',time:'~30 min',
+   content:`<ul class="rot-list">
+    <li><strong>Palavra-chave:</strong> EMPODERAMENTO</li>
+    <li>Explique o triângulo EUP → EUD → EUSE com analogias (receita de bolo → adaptar receita → criar manual de qualidade da cozinha).</li>
+    <li>Mostre a Tabela 1 (exemplos de ferramentas EUD): planilhas, visual programming, regras, demonstração.</li>
+    <li>Mostre a Tabela 2 (desafios EUD por etapa do ciclo de vida) — foque nos desafios de context-awareness: contexto dinâmico é difícil de modelar e testar.</li>
+    <li>Contexto: defina com a fórmula de Dey (2001). Mostre exemplos: localização, tempo, identidade, ambiente, dispositivo, social.</li>
+    <li>Ligue contexto a IoT: sensores → dados de contexto → adaptação automática.</li>
+   </ul>
+   <div class="rot-tip">Exemplo prático de context-awareness: "Seu celular às 18h, detecta que você está no carro (velocidade + GPS), tem reunião amanhã às 9h (agenda) e está chovendo (clima). Uma app context-aware ideal mandaria mensagem para casa, ligaria o Waze e verificaria se você precisa buscar seu filho na escola."</div>
+   <div class="rot-warn">Questão disparadora: "A Tabela 2 lista desafios de 2021. Quais desses desafios vocês acham que LLMs já resolveram? Quais ainda persistem?"</div>`},
+  {icon:'🟡',title:'🎮 Dinâmica 1 — Quem é quem no EUD?',time:'~15 min',
+   content:`<ul class="rot-list">
+    <li>Apresente os 3 cenários (aba Dinâmica 1 no site).</li>
+    <li>Peça para discutirem em duplas por 5 min, depois compartilharem.</li>
+    <li>Resposta esperada: A=EUP, B=EUD, C=apenas configuração (não é EUD!).</li>
+    <li>Use o cenário C para destacar que EUD exige a capacidade de <em>criar ou modificar comportamentos</em>, não só parametrizar.</li>
+   </ul>`},
+  {icon:'📙',title:'Seção 3 — Método de Revisão',time:'~20 min',
+   content:`<ul class="rot-list">
+    <li><strong>Palavra-chave:</strong> FILTRO SISTEMÁTICO</li>
+    <li>Apresente o funil: 968 → 492 → 90 → 37 artigos.</li>
+    <li>Explique a string de busca e as 3 fases de triagem (Tabela 3).</li>
+    <li>Destaque as decisões de exclusão mais interessantes: excluir ferramentas que não descrevem implementação, excluir ferramentas exclusivamente para especialistas técnicos.</li>
+   </ul>
+   <div class="rot-tip">Curiosidade: a maioria dos artigos é de 2001-2020. O IFTTT (2011) aparece como referência mas não é incluído porque não descreve sua implementação interna!</div>
+   <div class="rot-warn">Questão polêmica: "96% dos artigos foram descartados. Isso mostra rigor metodológico ou um critério excessivamente restritivo?" — leve o debate para os critérios de inclusão.</div>`},
+  {icon:'📒',title:'Seção 4 — Técnicas de Construção EUD',time:'~35 min',
+   content:`<ul class="rot-list">
+    <li><strong>Palavra-chave:</strong> METÁFORA</li>
+    <li>Apresente o panorama das 11 técnicas (slide do mapa / aba Técnicas do site).</li>
+    <li>Aprofunde 3-4 técnicas com exemplos concretos:</li>
+    <li><strong>Técnica 8 (Selecionar Regras / IFTTT-like):</strong> a mais prevalente no mercado. Simples mas limitada.</li>
+    <li><strong>Técnica 10 (Demonstrar Ações / PBD):</strong> a mais "mágica" — usuário mostra, sistema aprende. Tem ML por baixo.</li>
+    <li><strong>Técnica 4 (Linguagem Visual de Fluxo):</strong> blocos coloridos + compatibilidade de tipos. Como Scratch.</li>
+    <li><strong>Técnica 11 (AR/Tangível):</strong> futuro — CAPturAR usa realidade aumentada para demonstrar comportamentos.</li>
+   </ul>
+   <div class="rot-tip">Mostre o IFTTT ao vivo se possível! Crie uma automação simples ao vivo para ilustrar a Técnica 8.</div>
+   <div class="rot-warn">Questão disparadora: "Por que a Técnica 10 (Demonstração) não virou padrão se parece tão intuitiva? O que dificulta sua adoção?"</div>`},
+  {icon:'🟡',title:'🎮 Dinâmicas 2 & 3',time:'~20 min',
+   content:`<ul class="rot-list">
+    <li><strong>Dinâmica 2 (10 min):</strong> Design Sprint — grupos preenchem proposta no site e apresentam em 2 min cada.</li>
+    <li><strong>Dinâmica 3 (10 min):</strong> Votação "LLMs mataram o EUD?" — cada grupo vota e defende.</li>
+    <li>Conduza a síntese: LLMs e EUD são complementares, não opostos.</li>
+   </ul>`},
+  {icon:'📕',title:'Seção 5 — Implementações & Desafios',time:'~25 min',
+   content:`<ul class="rot-list">
+    <li><strong>Palavra-chave:</strong> EXPRESSIVIDADE</li>
+    <li>Mostre o gráfico de abordagens: regras (22/37) dominam, depois linguagem (10), ontologia e linguagem natural (5 cada).</li>
+    <li>Explique por que regras IF-THEN dominam: são intuitivas, mas têm limite de expressividade.</li>
+    <li>Discuta os 4 grandes desafios (slides 18-19): situações complexas, EUD mobile, Indústria 4.0, metodologia EUSE.</li>
+    <li>Destaque o achado mais surpreendente: apenas 2/37 artigos descrevem uma metodologia de desenvolvimento!</li>
+   </ul>
+   <div class="rot-tip">Analogia para expressividade: "É como comparar um menu de restaurante fixo (regras pré-definidas) com poder pedir qualquer prato que você imaginar (linguagem natural / LLMs). O menu é mais fácil para o garçom, mas limita o cliente."</div>
+   <div class="rot-warn">Questão polêmica: "Com IA generativa em 2026, qual desses desafios vocês acham que ainda persiste? O artigo teria conclusões diferentes se fosse escrito hoje?"</div>`},
+  {icon:'🌳',title:'Árvore de Pesquisa + Conclusões',time:'~15 min',
+   content:`<ul class="rot-list">
+    <li>Mostre a aba Árvore de Pesquisa no site — percorra os artigos da linha Ponce & Abdulrazak.</li>
+    <li>Destaque o artigo de 2021 (Intention as a Context) como evolução direta — propõe "intenção" como contexto, habilitando especialistas de domínio como construtores de apps.</li>
+    <li>Conclua com os 5 takeaways do slide de conclusão.</li>
+    <li>Faça o Quiz Final (aba Quiz no site) — 10 questões.</li>
+    <li>Encerre com a pergunta: "Se vocês fossem escrever o próximo artigo sobre EUD em 2026, qual seria a contribuição?"</li>
+   </ul>
+   <div class="rot-tip">Deixe alguns minutos de silêncio para reflexão antes de pedir respostas — questões abertas precisam de tempo para serem processadas.</div>`},
+];
+
+function buildRoteiro(){
+  const c=document.getElementById('rot-container');
+  ROTEIRO.forEach((r,i)=>{
+    c.innerHTML+=`<div class="rot-section">
+      <div class="rot-header" onclick="toggleRot(${i})">
+        <span class="rot-icon">${r.icon}</span>
+        <div class="rot-info">
+          <div class="rot-title">${r.title}</div>
+          <div class="rot-time">⏱️ ${r.time}</div>
+        </div>
+        <span class="arrow">▶</span>
+      </div>
+      <div class="rot-body" id="rb-${i}">${r.content}</div>
+    </div>`;
+  });
+}
+function toggleRot(i){
+  const b=document.getElementById('rb-'+i);
+  b.classList.toggle('open');
+}
+
+// ═══ TÉCNICAS ═══
+const TECNICAS=[
+  {n:'1',name:'Abstração de Artefatos',ex:'Situation API, Persona',color:'#1E3A5F',
+   desc:'Simplifica APIs e scripts para não-programadores. O sistema expõe funcionalidades técnicas de forma compreensível, como uma "API amigável". Foca em usuários técnicos que querem controlar comportamentos sem codificar do zero.',
+   analogy:'🔧 É como usar o painel de configurações avançadas do seu roteador — você não configura o firmware, mas tem mais controle que o usuário médio.'},
+  {n:'2',name:'Especificação Baseada em Modelo',ex:'IVO Framework',color:'#0D9488',
+   desc:'O usuário define fluxos de trabalho conectando conceitos pré-definidos (entrada → processo → saída). Não há regras livres — o modelo guia o que é possível.',
+   analogy:'📐 É como montar um fluxograma no Visio ou Miro — você conecta formas pré-definidas para criar um processo.'},
+  {n:'3',name:'Fluxo Simples de Componentes',ex:'S-APIs, MicroApps',color:'#2563EB',
+   desc:'Usuário conecta componentes em sequência ou paralelo, como um pipeline. A ferramenta valida a compatibilidade de conexões por cores ou formas.',
+   analogy:'🚰 É como conectar canos: você escolhe os tubos compatíveis, o sistema avisa se a conexão não funciona.'},
+  {n:'4',name:'Linguagem Visual de Fluxo',ex:'MNFL, Puzzle',color:'#7C3AED',
+   desc:'Blocos visuais representam construtos de programação (sensores, atuadores, operações matemáticas). Mais expressivo que o fluxo simples — inclui loops, condicionais, tipos de dados.',
+   analogy:'🧩 É como o Scratch (programação visual para crianças) — mas voltado para adultos construindo apps de monitoramento.'},
+  {n:'5',name:'Montagem de Peças',ex:'VisualRDK, Dobby, Rodríguez et al.',color:'#DB2777',
+   desc:'Peças visuais (blocos, tiles) se encaixam por compatibilidade de forma, como LEGO. Não segue necessariamente um fluxo linear.',
+   analogy:'🧱 LEGO: cada peça tem encaixes específicos — você só consegue conectar peças que fazem sentido juntas.'},
+  {n:'6',name:'Significado Simplificado',ex:'CAMP, Preuveneers et al.',color:'#EA580C',
+   desc:'Usa linguagem natural, ontologias ou domínio específico para simplificar o significado das peças. Ex: CAMP usa "magnetos de poesia" com palavras do cotidiano para compor regras.',
+   analogy:'🧲 Imãs de geladeira com palavras — você combina "quando | eu chego | em casa | ligar | luzes" arrastando palavras.'},
+  {n:'7',name:'Linguagem para Especificar Regras',ex:'iPlumber, SPOK, OPEN, EasyContext',color:'#1E3A5F',
+   desc:'Usa uma linguagem (ontológica, natural controlada ou DSL) para criar regras mais expressivas. Requer aprendizado da linguagem, mas permite maior complexidade.',
+   analogy:'📝 É como usar fórmulas no Excel — você aprende uma sintaxe específica mas consegue expressar coisas que cliques não permitem.'},
+  {n:'8',name:'Selecionar / Demonstrar Regras',ex:'IFTTT, Context Studio, Atomate, TARE',color:'#0D9488',
+   desc:'Usuário seleciona condições e ações de listas pré-definidas. A técnica mais comum no mercado (IFTTT, Shortcuts, Zapier). Limitada pelo que o sistema já previu.',
+   analogy:'🍽️ Menu fixo de restaurante — você escolhe entre o que está disponível, mas não pode pedir algo fora do cardápio.'},
+  {n:'9',name:'Ilustração de Regras',ex:'iCAP, ActivityDesigner',color:'#2563EB',
+   desc:'Usuário esboça ou desenha a regra em vez de configurá-la. Facilita a definição para situações específicas sem navegar por menus complexos.',
+   analogy:'✏️ É como rascunhar um storyboard — você desenha "aqui acontece isso, então acontece aquilo".'},
+  {n:'A',name:'Demonstrar Ações (PBD)',ex:'a CAPpella, GALLAG Strip, CAPturAR, VASH',color:'#7C3AED',
+   desc:'O usuário MOSTRA o que quer que aconteça. O sistema grava e aprende usando ML. Muito intuitivo, mas difícil de depurar.',
+   analogy:'🎬 É como gravar uma macro no Excel — você faz uma vez ao vivo, a ferramenta grava e repete para sempre.'},
+  {n:'B',name:'Interação Avançada',ex:'AutoHAN, T4Tags 2.0, CAPturAR',color:'#DB2777',
+   desc:'Usa AR, VR, objetos tangíveis, voz ou interfaces físicas. O usuário interage com o ambiente real para programar comportamentos.',
+   analogy:'🪄 É como o Minority Report — você manipula objetos reais (cubos, tokens, gestos) para definir comportamentos digitais.'},
+];
+
+function buildTecnicas(){
+  const g=document.getElementById('tech-grid');
+  TECNICAS.forEach((t,i)=>{
+    const d=document.createElement('div');
+    d.className='tech-card';
+    d.innerHTML=`<div class="tech-num" style="color:${t.color}">${t.n}</div>
+      <div class="tech-name">${t.name}</div>
+      <div class="tech-ex">${t.ex}</div>
+      <div class="tech-detail">
+        <p>${t.desc}</p>
+        <p style="margin-top:8px;font-style:italic;color:#0D9488">${t.analogy}</p>
+      </div>`;
+    d.onclick=()=>d.classList.toggle('open');
+    g.appendChild(d);
+  });
+}
+
+// ═══ ÁRVORE ═══
+function toggleDetail(id){
+  const el=document.getElementById(id);
+  if(el) el.classList.toggle('open');
+}
+
+// ═══ DINÂMICA 1 ═══
+const DIN1=[
+  {id:'A',text:'Uma enfermeira cria uma automação no Shortcuts do iPhone para enviar sua localização quando chega ao hospital.',opts:['EUP','EUD','EUSE','Apenas Configuração'],correct:0,
+   exp:'É EUP: a enfermeira construiu uma solução (automação) sem programar formalmente. Não testou sistematicamente nem compartilhou — então não chegou ao nível EUD.'},
+  {id:'B',text:'Um professor usa o App Inventor para construir um quiz gamificado, testa com 10 alunos, corrige bugs e publica na loja do App Inventor.',opts:['EUP','EUD','EUSE','Apenas Configuração'],correct:1,
+   exp:'É EUD: criou, testou, depurou e compartilhou. O ciclo completo de desenvolvimento sem expertise técnica tradicional.'},
+  {id:'C',text:'Um idoso personaliza as configurações do Google Home: muda o nome do dispositivo, ajusta volume e define 3 rotinas pré-existentes.',opts:['EUP','EUD','EUSE','Apenas Configuração'],correct:3,
+   exp:'É Apenas Configuração! O artigo distingue EUD de personalização/parametrização. O idoso escolhe entre opções pré-definidas — não cria nenhum comportamento novo. Essa distinção é central no artigo.'},
+];
+
+const din1Votes={};
+function buildDin1(){
+  const c=document.getElementById('din1-scenarios');
+  DIN1.forEach((sc,i)=>{
+    const d=document.createElement('div');
+    d.className='scenario';
+    d.style.marginBottom='14px';
+    d.innerHTML=`<p><strong>Cenário ${sc.id}:</strong> ${sc.text}</p>
+    <div class="vote-btns" id="vbtns-${i}">
+      ${sc.opts.map((o,j)=>`<button class="btn btn-outline btn-sm" onclick="voteDin1(${i},${j})">${o}</button>`).join('')}
+    </div>
+    <div id="vfeed-${i}" style="display:none;margin-top:8px;padding:10px 14px;border-radius:8px;font-size:.88rem"></div>`;
+    c.appendChild(d);
+  });
+}
+function voteDin1(si,oi){
+  const sc=DIN1[si];
+  const fb=document.getElementById('vfeed-'+si);
+  const btns=document.querySelectorAll(`#vbtns-${si} button`);
+  btns.forEach(b=>b.disabled=true);
+  btns[oi].style.background= oi===sc.correct?'var(--teal)':'var(--red)';
+  btns[oi].style.color='#fff';
+  btns[oi].style.border='none';
+  if(oi===sc.correct){btns[sc.correct].style.background='var(--teal)'}
+  else{btns[sc.correct].style.background='var(--teal)';btns[sc.correct].style.color='#fff';btns[sc.correct].style.border='none';}
+  fb.style.display='block';
+  fb.style.background= oi===sc.correct?'#DCFCE7':'#FEE2E2';
+  fb.style.color= oi===sc.correct?'#166534':'#991B1B';
+  fb.textContent= (oi===sc.correct?'✅ ':'❌ ')+sc.exp;
+}
+
+// ═══ DINÂMICA 2 (Sprint) ═══
+const sprints=[];
+function submitSprint(){
+  const grupo=document.getElementById('sprint-grupo').value.trim();
+  const tec=document.getElementById('sprint-tecnica').value;
+  const met=document.getElementById('sprint-metafora').value.trim();
+  const des=document.getElementById('sprint-desafio').value.trim();
+  if(!grupo||!tec||!met||!des){alert('Preencha todos os campos!');return;}
+  sprints.push({grupo,tec,met,des});
+  document.getElementById('sprint-grupo').value='';
+  document.getElementById('sprint-tecnica').value='';
+  document.getElementById('sprint-metafora').value='';
+  document.getElementById('sprint-desafio').value='';
+  renderSprints();
+}
+function renderSprints(){
+  const l=document.getElementById('sprint-list');
+  l.innerHTML=sprints.map(s=>`<div class="sprint-entry">
+    <strong>👥 ${s.grupo}</strong>
+    <p>🛠️ <em>${s.tec}</em></p>
+    <p>🎨 Metáfora: ${s.met}</p>
+    <p>⚠️ Desafio: ${s.des}</p>
+  </div>`).join('');
+}
+
+// ═══ DINÂMICA 3 (Poll) ═══
+const votes={sim:0,nao:0};
+let hasVoted=false;
+function vote(side){
+  if(hasVoted){document.getElementById('voted-msg').style.display='block';return;}
+  votes[side]++;
+  hasVoted=true;
+  document.getElementById('voted-msg').style.display='block';
+  updatePoll();
+}
+function updatePoll(){
+  const total=votes.sim+votes.nao;
+  document.getElementById('total-votes').textContent=total;
+  if(total===0)return;
+  const pSim=Math.round(votes.sim/total*100);
+  const pNao=100-pSim;
+  document.getElementById('bar-sim').style.width=pSim+'%';
+  document.getElementById('bar-sim').textContent=pSim+'%';
+  document.getElementById('bar-nao').style.width=pNao+'%';
+  document.getElementById('bar-nao').textContent=pNao+'%';
+  document.getElementById('pct-sim').textContent=votes.sim;
+  document.getElementById('pct-nao').textContent=votes.nao;
+}
+
+// ═══ QUIZ ═══
+const QUIZ=[
+  {q:'Qual é a abordagem de implementação mais comum entre os 37 artigos revisados?',opts:['Linguagem Natural','Machine Learning','Baseada em Regras (IF-THEN)','Ontologia'],c:2,exp:'22 dos 37 artigos (≈60%) usam regras IF-THEN como base. É a abordagem mais intuitiva para não-programadores.'},
+  {q:'Quantos dos 37 artigos focam exclusivamente em usuários não-técnicos?',opts:['11 artigos (30%)','26 artigos (70%)','37 artigos (100%)','5 artigos (14%)'],c:1,exp:'26 dos 37 artigos (70%) focam em usuários não-técnicos. 6 focam em técnicos e 5 em ambos.'},
+  {q:'Qual ferramenta usa "programação por demonstração" com Machine Learning para aprender padrões de contexto?',opts:['IFTTT','iCAP','a CAPpella','SPOK'],c:2,exp:'a CAPpella (Dey et al., 2004) grava sensores e ações, o usuário anota o que importa, e um Dynamic Bayesian Network aprende o padrão.'},
+  {q:'O que diferencia EUD de simplesmente "configurar" uma aplicação?',opts:['EUD usa linguagem de programação tradicional','EUD permite criar/modificar comportamentos novos, não apenas parametrizar opções pré-definidas','EUD só funciona em dispositivos móveis','EUD requer conhecimento de APIs'],c:1,exp:'O artigo distingue EUD de parametrização/configuração: EUD cria comportamentos novos. Um idoso escolhendo rotinas no Google Home está configurando, não fazendo EUD.'},
+  {q:'Qual técnica de construção EUD usa objetos físicos tangíveis (tokens) para programar comportamentos domésticos?',opts:['MNFL','T4Tags 2.0','Puzzle','Context Studio'],c:1,exp:'T4Tags 2.0 usa tokens tangíveis com RFID/NFC anexados a objetos da casa. Tocar o token define comportamentos via uma sintaxe WHEN-CONDITION-ACTION.'},
+  {q:'Quantos artigos dos 37 descrevem uma metodologia de desenvolvimento (EUSE)?',opts:['0','2','10','37'],c:1,exp:'Apenas 2 artigos descrevem uma metodologia de desenvolvimento sistemática: Context Cloud e MicroApps. Isso é um desafio identificado pelo artigo.'},
+  {q:'O CAPturAR (2020) usa qual tecnologia de ponta para programar apps context-aware?',opts:['Blockchain','Realidade Aumentada (AR)','5G Edge Computing','NFT'],c:1,exp:'CAPturAR usa AR para que o usuário demonstre ações com objetos reais. ML detecta posições do corpo e interações com objetos.'},
+  {q:'Qual é a principal limitação do EUD em dispositivos móveis segundo o artigo?',opts:['Falta de sensores nos celulares','Tela pequena limita expressividade e composição de blocos complexos','Celulares não têm processamento suficiente','Usuários de celular não se interessam por EUD'],c:1,exp:'8/37 projetos fazem EUD no mobile, e o principal desafio é a tela pequena — composição de blocos complexos (como cálculos matemáticos ou relações espaciais) ainda requer PC.'},
+  {q:'Na pesquisa de Ponce & Abdulrazak, qual artigo propõe "intenção" como um tipo de contexto para apps IoT?',opts:['Context-Aware EUD Review (2022)','Intention as a Context (2021 IEEE Access)','Dynamic Domain Model (2016)','Ambient Intelligence Governance Review (2022)'],c:1,exp:'"Intention as a Context" (IEEE Access, 2021) propõe um modelo de intenção de atividade para que especialistas de domínio (ex: médicos) definam comportamentos de apps IoT sem programar.'},
+  {q:'A ferramenta GALLAG Strip (2013) usa qual metáfora de interface?',opts:['Planilha','Mapa geográfico 3D','Tiras de quadrinhos (comic strip)','Linha de tempo musical'],c:2,exp:'GALLAG Strip usa a metáfora de tiras de quadrinhos (comic strips) onde cada frame representa uma ação física demonstrada pelo usuário (ligar TV, etc.), criando um "programa" visual.'},
+];
+
+let answered=0;let correct=0;
+function buildQuiz(){
+  const c=document.getElementById('quiz-container');
+  QUIZ.forEach((q,i)=>{
+    const d=document.createElement('div');
+    d.className='quiz-question';
+    d.id='qq-'+i;
+    d.innerHTML=`<div class="quiz-q-text">${i+1}. ${q.q}</div>
+      <div class="quiz-options">
+        ${q.opts.map((o,j)=>`<div class="quiz-opt" id="qo-${i}-${j}" onclick="answerQuiz(${i},${j})">
+          <span class="quiz-letter">${String.fromCharCode(65+j)}</span>${o}
+        </div>`).join('')}
+      </div>
+      <div class="feedback" id="qf-${i}"></div>`;
+    c.appendChild(d);
+  });
+}
+function answerQuiz(qi,oi){
+  const q=QUIZ[qi];
+  const opts=document.querySelectorAll(`[id^="qo-${qi}-"]`);
+  if(opts[0].classList.contains('disabled'))return;
+  opts.forEach(o=>o.classList.add('disabled'));
+  opts[oi].classList.add(oi===q.c?'correct':'wrong');
+  if(oi!==q.c) opts[q.c].classList.add('correct');
+  const fb=document.getElementById('qf-'+qi);
+  fb.className='feedback show '+(oi===q.c?'ok':'err');
+  fb.textContent=(oi===q.c?'✅ Correto! ':'❌ Incorreto. ')+q.exp;
+  document.getElementById('qq-'+qi).classList.add('answered');
+  answered++;
+  if(oi===q.c) correct++;
+  if(answered===QUIZ.length) showScore();
+}
+function showScore(){
+  const sc=document.getElementById('quiz-score');
+  const pct=Math.round(correct/QUIZ.length*100);
+  sc.style.display='block';
+  document.getElementById('score-text').textContent=`${correct}/${QUIZ.length} — ${pct}%`;
+  const msgs=['Continue estudando! 💪','Bom começo! 📖','Indo bem! 🙂','Muito bem! 👍','Excelente! 🌟','Perfeito! 🏆'];
+  document.getElementById('score-sub').textContent=msgs[Math.min(Math.floor(pct/20),5)];
+  sc.scrollIntoView({behavior:'smooth'});
+}
+function resetQuiz(){
+  document.getElementById('quiz-container').innerHTML='';
+  document.getElementById('quiz-score').style.display='none';
+  answered=0;correct=0;
+  buildQuiz();
+  window.scrollTo(0,0);
+}
+
+// ═══ INIT ═══
+buildRoteiro();
+buildTecnicas();
+buildDin1();
+buildQuiz();
+</script>
+</body>
+</html>
